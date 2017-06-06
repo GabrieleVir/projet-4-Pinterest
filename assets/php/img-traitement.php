@@ -1,72 +1,37 @@
 <?php
-	function stringSani ($filtredvar) {
-		$filtredvar = filter_var($filtredvar,FILTER_SANITIZE_STRING);
-		return $filtredvar;
-	}	
+    if (isset($_POST['submit'])) {
+        include 'assets/php/scans_upload2.php';
+        $uploadOk = 1;
+        $target_dir = "storage/uploads/";
+        $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]); 
+        $imageFileType = pathinfo($target_file,PATHINFO_EXTENSION); 
 
-	function sanitize ($string) // enlève les chiffres dans les strings nom, prenom.
-	{
-		$search = [0,1,2,3,4,5,6,7,8,9];
-		$replace = "";
-		$string = str_replace($search, $replace, $string);	
-		return $string;
-	}
-    
-    $filtred_submit = stringSani($_POST['submit']);
+        //fprendre que les images avec ce format: jpg, jpeg, png, gif, WebP
+        if($imageFileType != "jpg" && $imageFileType != "jpeg" && $imageFileType != "png" && $imageFileType != "gif" && $imageFileType != "WebP" ) {
+            $msg_format_erreur = "Le format de votre image n'est pas accepté. (Formats acceptés : jpg, jpeg, png, gif, WebP." . "<br>";
+            echo $msg_format_erreur;
+            $uploadOk = 0;
+        } else {
+            $msg_format = "Votre image est bien une image.";
+            echo $msg_format . "<br>";         
+        }
 
-    if (isset($filtred_submit)) {
-    	$uploadOk = 1;
-    	$target_dir = "../storage/uploads/";
-		$target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
-    	$imageFileType = pathinfo($target_file,PATHINFO_EXTENSION);
-    	
-    	if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
-		&& $imageFileType != "gif" && $imageFileType != "WebP") {
-    		echo "Sorry, only JPG, JPEG, PNG, GIF & WEBP files are allowed.";
-    		$uploadOk = 0;
-		}
-		// Check if image file is a actual image or fake image
-		if(isset($_POST["submit"])) {
-		    $check = getimagesize($_FILES["fileToUpload"]["tmp_name"]);
-		    if($check !== false) {
-		        echo "File is an image - " . $check["mime"] . ".";
-		        $uploadOk = 1;
-		    } else {
-		        echo "File is not an image.";
-		        $uploadOk = 0;
-		    }
-		}
-
-		// Check file size
-		if ($_FILES["fileToUpload"]["size"] > 500000) {
-		    echo "Sorry, your file is too large.";
-		    $uploadOk = 0;
-		}
-		// Allow certain file formats
-		if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
-		&& $imageFileType != "gif" ) {
-		    echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
-		    $uploadOk = 0;
-		}
-		// Check if $uploadOk is set to 0 by an error
-		if ($uploadOk == 0) {
-		    echo "Sorry, your file was not uploaded.";
-		// if everything is ok, try to upload file
-		} else {
-		    if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
-		        echo "The file ". basename( $_FILES["fileToUpload"]["name"]). " has been uploaded.";
-		    } else {
-		        echo "Sorry, there was an error uploading your file.";
-		    }
-		}
-
-
+        //Petit bonus par rapport à la taille 
+        $max_size = 4194304; // 4MB
+        if($_FILES["fileToUpload"]["size"] > $max_size ) {
+            $msg_taille_erreur = "Votre image est trop lourde, veuillez utiliser une image de taille inférieure à 4MB."."<br>";
+            echo $msg_taille_erreur;
+            $uploadOk = 0;
+        } 
+        if($uploadOk === 0) {
+            echo "Désolé, votre image n'a pas pu être mise en ligne.";
+        } else {
+            if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
+                echo "Votre image ". basename( $_FILES["fileToUpload"]["name"]). " a bien été mise en ligne.";
+            } else {
+                echo "Désolé, il y a eu un problème lors de la mise en ligne de votre image.";
+            }    
+        }
+    }
 	
-
-			if ($_FILES["fileToUpload"]["size"] > 500000) {
-		    	echo "Sorry, your file is too large.";
-		    	$uploadOk = 0;
-			}
-
-	}		
 ?>
