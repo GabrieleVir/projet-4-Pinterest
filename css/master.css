@@ -1,0 +1,61 @@
+* { box-sizing: border-box; }
+
+/* force scrollbar */
+html { overflow-y: scroll; }
+
+body { font-family: sans-serif; }
+
+.container-fluid{
+    padding:0;
+}
+
+.navstyle {
+    background-color: rgba(254, 254, 254, 0.9);
+}
+.navbar-header .navbar-brand {
+    color: #C9302C;
+}
+
+#avatar {
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+}
+
+/* ---- grid-Masonry-JS-copy-paste from codepen + myCustom ---- */
+
+.grid {
+
+}
+
+/* clear fix */
+.grid:after {
+    content: '';
+    display: block;
+    clear: both;
+}
+
+/* ---- .grid-item ---- */
+
+.grid-sizer,
+.grid-item {
+    width: 33.333%;
+
+}
+
+.grid-item {
+    float: left;
+
+
+}
+
+.grid-item--width2 { width: 160px; }
+.grid-item--height2 { height: 140px; }
+
+
+.grid-item img {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+
+}

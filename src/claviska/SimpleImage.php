@@ -12,11 +12,8 @@
 //
 //  Licensed under the MIT license <http://opensource.org/licenses/MIT>
 //
-
 namespace claviska;
-
 class SimpleImage {
-
   const
     ERR_FILE_NOT_FOUND = 1,
     ERR_FONT_FILE = 2,
@@ -29,13 +26,10 @@ class SimpleImage {
     ERR_UNSUPPORTED_FORMAT = 9,
     ERR_WEBP_NOT_ENABLED = 10,
     ERR_WRITE = 11;
-
   private $image, $mimeType, $exif;
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // Magic methods
   //////////////////////////////////////////////////////////////////////////////////////////////////
-
   //
   // Creates a new SimpleImage object.
   //
@@ -49,7 +43,6 @@ class SimpleImage {
     } else {
       throw new \Exception('Required extension GD is not loaded.', self::ERR_GD_NOT_ENABLED);
     }
-
     // Load an image through the constructor
     if(preg_match('/^data:(.*?);/', $image)) {
       $this->fromDataUri($image);
@@ -57,7 +50,6 @@ class SimpleImage {
       $this->fromFile($image);
     }
   }
-
   //
   // Destroys the image resource
   //
@@ -66,11 +58,9 @@ class SimpleImage {
       imagedestroy($this->image);
     }
   }
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // Loaders
   //////////////////////////////////////////////////////////////////////////////////////////////////
-
   //
   // Loads an image from a data URI.
   //
@@ -84,7 +74,6 @@ class SimpleImage {
     if(!count($matches)) {
       throw new \Exception('Invalid data URI.', self::ERR_INVALID_DATA_URI);
     }
-
     // Determine mime type
     $this->mimeType = $matches[1];
     if(!preg_match('/^image\/(gif|jpeg|png)$/', $this->mimeType)) {
@@ -93,17 +82,14 @@ class SimpleImage {
         self::ERR_UNSUPPORTED_FORMAT
       );
     }
-
     // Get image data
     $uri = base64_decode(preg_replace('/^data:(.*?);base64,/', '', $uri));
     $this->image = imagecreatefromstring($uri);
     if(!$this->image) {
       throw new \Exception("Invalid image data.", self::ERR_INVALID_IMAGE);
     }
-
     return $this;
   }
-
   //
   // Loads an image from a file.
   //
@@ -119,14 +105,12 @@ class SimpleImage {
       throw new \Exception("File not found: $file", self::ERR_FILE_NOT_FOUND);
     }
     fclose($handle);
-
     // Get image info
     $info = getimagesize($file);
     if($info === false) {
       throw new \Exception("Invalid image file: $file", self::ERR_INVALID_IMAGE);
     }
     $this->mimeType = $info['mime'];
-
     // Create image object from file
     switch($this->mimeType) {
     case 'image/gif':
@@ -158,18 +142,14 @@ class SimpleImage {
     if(!$this->image) {
       throw new \Exception("Unsupported image: $file", self::ERR_UNSUPPORTED_FORMAT);
     }
-
     // Convert pallete images to true color images
     imagepalettetotruecolor($this->image);
-
     // Load exif data from JPEG images
     if($this->mimeType === 'image/jpeg' && function_exists('exif_read_data')) {
       $this->exif = @exif_read_data($file);
     }
-
     return $this;
   }
-
   //
   // Creates a new image.
   //
@@ -181,16 +161,12 @@ class SimpleImage {
   //
   public function fromNew($width, $height, $color = 'transparent') {
     $this->image = imagecreatetruecolor($width, $height);
-
     // Use PNG for dynamically created images because it's lossless and supports transparency
     $this->mimeType = 'image/png';
-
     // Fill the image with color
     $this->fill($color);
-
     return $this;
   }
-
   //
   // Creates a new image from a string.
   //
@@ -203,11 +179,9 @@ class SimpleImage {
   public function fromString($string) {
     return $this->fromFile('data://;base64,' . base64_encode($string));
   }
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // Savers
   //////////////////////////////////////////////////////////////////////////////////////////////////
-
   //
   // Generates an image.
   //
@@ -220,14 +194,11 @@ class SimpleImage {
   private function generate($mimeType = null, $quality = 100) {
     // Format defaults to the original mime type
     $mimeType = $mimeType ?: $this->mimeType;
-
     // Ensure quality is a valid integer
     if($quality === null) $quality = 100;
     $quality = self::keepWithin((int) $quality, 0, 100);
-
     // Capture output
     ob_start();
-
     // Generate the image
     switch($mimeType) {
     case 'image/gif':
@@ -256,17 +227,14 @@ class SimpleImage {
     default:
       throw new \Exception('Unsupported format: ' . $mimeType, self::ERR_UNSUPPORTED_FORMAT);
     }
-
     // Stop capturing
     $data = ob_get_contents();
     ob_end_clean();
-
     return [
       'data' => $data,
       'mimeType' => $mimeType
     ];
   }
-
   //
   // Generates a data URI.
   //
@@ -278,10 +246,8 @@ class SimpleImage {
   //
   public function toDataUri($mimeType = null, $quality = 100) {
     $image = $this->generate($mimeType, $quality);
-
     return 'data:' . $image['mimeType'] . ';base64,' . base64_encode($image['data']);
   }
-
   //
   // Forces the image to be downloaded to the clients machine. Must be called before any output is
   // sent to the screen.
@@ -293,7 +259,6 @@ class SimpleImage {
   //
   public function toDownload($filename, $mimeType = null, $quality = 100) {
     $image = $this->generate($mimeType, $quality);
-
     // Set download headers
     header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
     header('Content-Description: File Transfer');
@@ -301,12 +266,9 @@ class SimpleImage {
     header('Content-Transfer-Encoding: Binary');
     header('Content-Type: application/octet-stream');
     header("Content-Disposition: attachment; filename=\"$filename\"");
-
     echo $image['data'];
-
     return $this;
   }
-
   //
   // Writes the image to a file.
   //
@@ -318,15 +280,12 @@ class SimpleImage {
   //
   public function toFile($file, $mimeType = null, $quality = 100) {
     $image = $this->generate($mimeType, $quality);
-
     // Save the image to file
     if(!file_put_contents($file, $image['data'])) {
       throw new \Exception("Failed to write image to file: $file", self::ERR_WRITE);
     }
-
     return $this;
   }
-
   //
   // Outputs the image to the screen. Must be called before any output is sent to the screen.
   //
@@ -338,14 +297,11 @@ class SimpleImage {
   //
   public function toScreen($mimeType = null, $quality = 100) {
     $image = $this->generate($mimeType, $quality);
-
     // Output the image to stdout
     header('Content-Type: ' . $image['mimeType']);
     echo $image['data'];
-
     return $this;
   }
-
   //
   // Generates an image string.
   //
@@ -358,11 +314,9 @@ class SimpleImage {
   public function toString($mimeType = null, $quality = 100) {
     return $this->generate($mimeType, $quality)['data'];
   }
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // Utilities
   //////////////////////////////////////////////////////////////////////////////////////////////////
-
   //
   // Ensures a numeric value is always within the min and max range.
   //
@@ -377,7 +331,6 @@ class SimpleImage {
     if($value > $max) return $max;
     return $value;
   }
-
   //
   // Gets the image's current aspect ratio.
   //
@@ -386,7 +339,6 @@ class SimpleImage {
   public function getAspectRatio() {
     return $this->getWidth() / $this->getHeight();
   }
-
   //
   // Gets the image's exif data.
   //
@@ -395,7 +347,6 @@ class SimpleImage {
   public function getExif() {
     return isset($this->exif) ? $this->exif : null;
   }
-
   //
   // Gets the image's current height.
   //
@@ -404,7 +355,6 @@ class SimpleImage {
   public function getHeight() {
     return (int) imagesy($this->image);
   }
-
   //
   // Gets the mime type of the loaded image.
   //
@@ -413,7 +363,6 @@ class SimpleImage {
   public function getMimeType() {
     return $this->mimeType;
   }
-
   //
   // Gets the image's current orientation.
   //
@@ -422,12 +371,10 @@ class SimpleImage {
   public function getOrientation() {
     $width = $this->getWidth();
     $height = $this->getHeight();
-
     if($width > $height) return 'landscape';
     if($width < $height) return 'portrait';
     return 'square';
   }
-
   //
   // Gets the image's current width.
   //
@@ -436,11 +383,9 @@ class SimpleImage {
   public function getWidth() {
     return (int) imagesx($this->image);
   }
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // Manipulation
   //////////////////////////////////////////////////////////////////////////////////////////////////
-
   //
   // Same as PHP's imagecopymerge, but works with transparent images. Used internally for overlay.
   //
@@ -451,12 +396,9 @@ class SimpleImage {
       imagealphablending($srcIm, false);
       imagefilter($srcIm, IMG_FILTER_COLORIZE, 0, 0, 0, 127 * ((100 - $pct) / 100));
     }
-
     imagecopy($dstIm, $srcIm, $dstX, $dstY, $srcX, $srcY, $srcW, $srcH);
-
     return true;
   }
-
   //
   // Rotates an image so the orientation will be correct based on its exif data. It is safe to call
   // this method on images that don't have exif data (no changes will be made).
@@ -465,7 +407,6 @@ class SimpleImage {
   //
   public function autoOrient() {
     $exif = $this->getExif();
-
     switch($exif['Orientation']) {
     case 1: // Do nothing!
       break;
@@ -491,10 +432,8 @@ class SimpleImage {
       $this->rotate(-90);
       break;
     }
-
     return $this;
   }
-
   //
   // Proportionally resize the image to fit inside a specific width and height.
   //
@@ -508,7 +447,6 @@ class SimpleImage {
     if($this->getWidth() <= $maxWidth && $this->getHeight() <= $maxHeight) {
       return $this;
     }
-
     // Calculate max width or height based on orientation
     if($this->getOrientation() === 'portrait') {
       $height = $maxHeight;
@@ -517,22 +455,18 @@ class SimpleImage {
       $width = $maxWidth;
       $height = $maxWidth / $this->getAspectRatio();
     }
-
     // Reduce to max width
     if($width > $maxWidth) {
       $width = $maxWidth;
       $height = $width / $this->getAspectRatio();
     }
-
     // Reduce to max height
     if($height > $maxHeight) {
       $height = $maxHeight;
       $width = $height * $this->getAspectRatio();
     }
-
     return $this->resize($width, $height);
   }
-
   //
   // Crop the image.
   //
@@ -549,7 +483,6 @@ class SimpleImage {
     $x2 = self::keepWithin($x2, 0, $this->getWidth());
     $y1 = self::keepWithin($y1, 0, $this->getHeight());
     $y2 = self::keepWithin($y2, 0, $this->getHeight());
-
     // Crop it
     $this->image = imagecrop($this->image, [
       'x' => min($x1, $x2),
@@ -557,10 +490,8 @@ class SimpleImage {
       'width' => abs($x2 - $x1),
       'height' => abs($y2 - $y1)
     ]);
-
     return $this;
   }
-
   //
   // Applies a duotone filter to the image.
   //
@@ -572,12 +503,10 @@ class SimpleImage {
   function duotone($lightColor, $darkColor) {
     $lightColor = self::normalizeColor($lightColor);
     $darkColor = self::normalizeColor($darkColor);
-
     // Calculate averages between light and dark colors
     $redAvg = $lightColor['red'] - $darkColor['red'];
     $greenAvg = $lightColor['green'] - $darkColor['green'];
     $blueAvg = $lightColor['blue'] - $darkColor['blue'];
-
     // Create a matrix of all possible duotone colors based on gray values
     $pixels = [];
     for($i = 0; $i <= 255; $i++) {
@@ -586,7 +515,6 @@ class SimpleImage {
       $pixels['green'][$i] = $darkColor['green'] + $grayAvg * $greenAvg;
       $pixels['blue'][$i] = $darkColor['blue'] + $grayAvg * $blueAvg;
     }
-
     // Apply the filter pixel by pixel
     for($x = 0; $x < $this->getWidth(); $x++) {
       for($y = 0; $y < $this->getHeight(); $y++) {
@@ -599,10 +527,8 @@ class SimpleImage {
         ]);
       }
     }
-
     return $this;
   }
-
   //
   // Proportionally resize the image to a specific height.
   //
@@ -616,7 +542,6 @@ class SimpleImage {
   public function fitToHeight($height) {
     return $this->resize(null, $height);
   }
-
   //
   // Proportionally resize the image to a specific width.
   //
@@ -630,7 +555,6 @@ class SimpleImage {
   public function fitToWidth($width) {
     return $this->resize($width, null);
   }
-
   //
   // Flip the image horizontally or vertically.
   //
@@ -650,10 +574,8 @@ class SimpleImage {
       imageflip($this->image, IMG_FLIP_BOTH);
       break;
     }
-
     return $this;
   }
-
   //
   // Reduces the image to a maximum number of colors.
   //
@@ -664,10 +586,8 @@ class SimpleImage {
   //
   public function maxColors($max, $dither = true) {
     imagetruecolortopalette($this->image, $dither, max(1, $max));
-
     return $this;
   }
-
   //
   // Place an image on top of the current image.
   //
@@ -686,10 +606,8 @@ class SimpleImage {
     if(!($overlay instanceof SimpleImage)) {
       $overlay = new SimpleImage($overlay);
     }
-
     // Convert opacity
     $opacity = self::keepWithin($opacity, 0, 1) * 100;
-
     // Determine placement
     switch($anchor) {
       case 'top left':
@@ -729,7 +647,6 @@ class SimpleImage {
         $y = ($this->getHeight() / 2) - ($overlay->getHeight() / 2) + $yOffset;
         break;
     }
-
     // Perform the overlay
     self::imageCopyMergeAlpha(
       $this->image,
@@ -740,10 +657,8 @@ class SimpleImage {
       $overlay->getHeight(),
       $opacity
     );
-
     return $this;
   }
-
   //
   // Resize an image to the specified dimensions. If only one dimension is specified, the image will
   // be resized proportionally.
@@ -758,22 +673,18 @@ class SimpleImage {
     if(!$width && !$height) {
       return $this;
     }
-
     // Resize to width
     if($width && !$height) {
       $height = $width / $this->getAspectRatio();
     }
-
     // Resize to height
     if(!$width && $height) {
       $width = $height * $this->getAspectRatio();
     }
-
     // If the dimensions are the same, there's no need to resize
     if($this->getWidth() === $width && $this->getHeight() === $height) {
       return $this;
     }
-
     // We can't use imagescale because it doesn't seem to preserve transparency properly. The
     // workaround is to create a new truecolor image, allocate a transparent color, and copy the
     // image over to it using imagecopyresampled.
@@ -790,13 +701,10 @@ class SimpleImage {
       $this->getWidth(),
       $this->getHeight()
     );
-
     // Swap out the new image
     $this->image = $newImage;
-
     return $this;
   }
-
   //
   // Rotates the image.
   //
@@ -809,16 +717,13 @@ class SimpleImage {
   public function rotate($angle, $backgroundColor = 'transparent') {
     // Rotate the image on a canvas with the desired background color
     $backgroundColor = $this->allocateColor($backgroundColor);
-
     $this->image = imagerotate(
       $this->image,
       -(self::keepWithin($angle, -360, 360)),
       $backgroundColor
     );
-
     return $this;
   }
-
   //
   // Adds text to the image.
   //
@@ -849,7 +754,6 @@ class SimpleImage {
         self::ERR_FREETYPE_NOT_ENABLED
       );
     }
-
     // Default options
     $options = array_merge([
       'fontFile' => null,
@@ -860,7 +764,6 @@ class SimpleImage {
       'yOffset' => 0,
       'shadow' => null
     ], $options);
-
     // Extract and normalize options
     $fontFile = $options['fontFile'];
     $size = ($options['size'] / 96) * 72; // Convert px to pt (72pt per inch, 96px per inch)
@@ -869,7 +772,6 @@ class SimpleImage {
     $xOffset = $options['xOffset'];
     $yOffset = $options['yOffset'];
     $angle = 0;
-
     // Calculate the bounding box dimensions
     //
     // Since imagettfbox() returns a bounding box from the text's baseline, we can end up with
@@ -888,16 +790,13 @@ class SimpleImage {
     }
     $boxWidth = abs($box[6] - $box[2]);
     $boxHeight = $options['size'];
-
     // Determine cap height
     $box = imagettfbbox($size, $angle, $fontFile, 'X');
     $capHeight = abs($box[7] - $box[1]);
-
     // Determine descender height
     $box = imagettfbbox($size, $angle, $fontFile, 'X Qgjpqy');
     $fullHeight = abs($box[7] - $box[1]);
     $descenderHeight = $fullHeight - $capHeight;
-
     // Determine position
     switch($anchor) {
     case 'top left':
@@ -937,10 +836,8 @@ class SimpleImage {
       $y = ($this->getHeight() / 2) - (($boxHeight / 2) - $boxHeight) + $yOffset;
       break;
     }
-
     $x = (int) round($x);
     $y = (int) round($y);
-
     // Pass the boundary back by reference
     $boundary = [
       'x1' => $x,
@@ -950,7 +847,6 @@ class SimpleImage {
       'width' => $boxWidth,
       'height' => $boxHeight
     ];
-
     // Text shadow
     if(is_array($options['shadow'])) {
       imagettftext(
@@ -964,13 +860,10 @@ class SimpleImage {
         $text
       );
     }
-
     // Draw the text
     imagettftext($this->image, $size, $angle, $x, $y - $descenderHeight, $color, $fontFile, $text);
-
     return $this;
   }
-
   //
   // Creates a thumbnail image. This function attempts to get the image as close to the provided
   // dimensions as possible, then crops the remaining overflow to force the desired size. Useful
@@ -987,14 +880,12 @@ class SimpleImage {
     // Determine aspect ratios
     $currentRatio = $this->getHeight() / $this->getWidth();
     $targetRatio = $height / $width;
-
     // Fit to height/width
     if($targetRatio > $currentRatio) {
       $this->resize(null, $height);
     } else {
       $this->resize($width, null);
     }
-
     switch($anchor) {
     case 'top':
       $x1 = floor(($this->getWidth() / 2) - ($width / 2));
@@ -1051,15 +942,12 @@ class SimpleImage {
       $y2 = $height + $y1;
       break;
     }
-
     // Return the cropped thumbnail image
     return $this->crop($x1, $y1, $x2, $y2);
   }
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // Drawing
   //////////////////////////////////////////////////////////////////////////////////////////////////
-
   //
   // Draws an arc.
   //
@@ -1077,7 +965,6 @@ class SimpleImage {
   public function arc($x, $y, $width, $height, $start, $end, $color, $thickness = 1) {
     // Allocate the color
     $color = $this->allocateColor($color);
-
     // Draw an arc
     if($thickness === 'filled') {
       imagesetthickness($this->image, 1);
@@ -1086,10 +973,8 @@ class SimpleImage {
       imagesetthickness($this->image, $thickness);
       imagearc($this->image, $x, $y, $width, $height, $start, $end, $color);
     }
-
     return $this;
   }
-
   //
   // Draws a border around the image.
   //
@@ -1103,15 +988,12 @@ class SimpleImage {
     $y1 = 0;
     $x2 = $this->getWidth() - 1;
     $y2 = $this->getHeight() - 1;
-
     // Draw a border rectangle until it reaches the correct width
     for($i = 0; $i < $thickness; $i++) {
       $this->rectangle($x1++, $y1++, $x2--, $y2--, $color);
     }
-
     return $this;
   }
-
   //
   // Draws a single pixel dot.
   //
@@ -1124,10 +1006,8 @@ class SimpleImage {
   public function dot($x, $y, $color) {
     $color = $this->allocateColor($color);
     imagesetpixel($this->image, $x, $y, $color);
-
     return $this;
   }
-
   //
   // Draws an ellipse.
   //
@@ -1143,7 +1023,6 @@ class SimpleImage {
   public function ellipse($x, $y, $width, $height, $color, $thickness = 1) {
     // Allocate the color
     $color = $this->allocateColor($color);
-
     // Draw an ellipse
     if($thickness === 'filled') {
       imagesetthickness($this->image, 1);
@@ -1156,10 +1035,8 @@ class SimpleImage {
         imageellipse($this->image, $x, $y, --$width, $height--, $color);
       }
     }
-
     return $this;
   }
-
   //
   // Fills the image with a solid color.
   //
@@ -1170,14 +1047,11 @@ class SimpleImage {
   public function fill($color) {
     // Draw a filled rectangle over the entire image
     $this->rectangle(0, 0, $this->getWidth(), $this->getHeight(), 'white', 'filled');
-
     // Now flood it with the appropriate color
     $color = $this->allocateColor($color);
     imagefill($this->image, 0, 0, $color);
-
     return $this;
   }
-
   //
   // Draws a line.
   //
@@ -1193,14 +1067,11 @@ class SimpleImage {
   public function line($x1, $y1, $x2, $y2, $color, $thickness = 1) {
     // Allocate the color
     $color = $this->allocateColor($color);
-
     // Draw a line
     imagesetthickness($this->image, $thickness);
     imageline($this->image, $x1, $y1, $x2, $y2, $color);
-
     return $this;
   }
-
   //
   // Draws a polygon.
   //
@@ -1218,14 +1089,12 @@ class SimpleImage {
   public function polygon($vertices, $color, $thickness = 1) {
     // Allocate the color
     $color = $this->allocateColor($color);
-
     // Convert [['x' => x1, 'y' => x1], ['x' => x1, 'y' => y2], ...] to [x1, y1, x2, y2, ...]
     $points = [];
     foreach($vertices as $vals) {
       $points[] = $vals['x'];
       $points[] = $vals['y'];
     }
-
     // Draw a polygon
     if($thickness === 'filled') {
       imagesetthickness($this->image, 1);
@@ -1234,10 +1103,8 @@ class SimpleImage {
       imagesetthickness($this->image, $thickness);
       imagepolygon($this->image, $points, count($vertices), $color);
     }
-
     return $this;
   }
-
   //
   // Draws a rectangle.
   //
@@ -1253,7 +1120,6 @@ class SimpleImage {
   public function rectangle($x1, $y1, $x2, $y2, $color, $thickness = 1) {
     // Allocate the color
     $color = $this->allocateColor($color);
-
     // Draw a rectangle
     if($thickness === 'filled') {
       imagesetthickness($this->image, 1);
@@ -1262,10 +1128,8 @@ class SimpleImage {
       imagesetthickness($this->image, $thickness);
       imagerectangle($this->image, $x1, $y1, $x2, $y2, $color);
     }
-
     return $this;
   }
-
   //
   // Draws a rounded rectangle.
   //
@@ -1302,14 +1166,11 @@ class SimpleImage {
       $this->arc($x1 + $radius, $y2 - $radius, $radius * 2, $radius * 2, 90, 180, $color, $thickness);
       $this->arc($x2 - $radius, $y2 - $radius, $radius * 2, $radius * 2, 360, 90, $color, $thickness);
     }
-
     return $this;
   }
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // Filters
   //////////////////////////////////////////////////////////////////////////////////////////////////
-
   //
   // Applies the blur filter.
   //
@@ -1320,14 +1181,11 @@ class SimpleImage {
   //
   public function blur($type = 'selective', $passes = 1) {
     $filter = $type === 'gaussian' ? IMG_FILTER_GAUSSIAN_BLUR : IMG_FILTER_SELECTIVE_BLUR;
-
     for($i = 0; $i < $passes; $i++) {
       imagefilter($this->image, $filter);
     }
-
     return $this;
   }
-
   //
   // Applies the brightness filter to brighten the image.
   //
@@ -1337,12 +1195,9 @@ class SimpleImage {
   //
   public function brighten($percentage) {
     $percentage = self::keepWithin(255 * $percentage / 100, 0, 255);
-
     imagefilter($this->image, IMG_FILTER_BRIGHTNESS, $percentage);
-
     return $this;
   }
-
   //
   // Applies the colorize filter.
   //
@@ -1352,7 +1207,6 @@ class SimpleImage {
   //
   public function colorize($color) {
     $color = self::normalizeColor($color);
-
     imagefilter(
       $this->image,
       IMG_FILTER_COLORIZE,
@@ -1361,10 +1215,8 @@ class SimpleImage {
       $color['blue'],
       127 - ($color['alpha'] * 127)
     );
-
     return $this;
   }
-
   //
   // Applies the contrast filter.
   //
@@ -1374,10 +1226,8 @@ class SimpleImage {
   //
   public function contrast($percentage) {
     imagefilter($this->image, IMG_FILTER_CONTRAST, self::keepWithin($percentage, -100, 100));
-
     return $this;
   }
-
   //
   // Applies the brightness filter to darken the image.
   //
@@ -1387,12 +1237,9 @@ class SimpleImage {
   //
   public function darken($percentage) {
     $percentage = self::keepWithin(255 * $percentage / 100, 0, 255);
-
     imagefilter($this->image, IMG_FILTER_BRIGHTNESS, -$percentage);
-
     return $this;
   }
-
   //
   // Applies the desaturate (grayscale) filter.
   //
@@ -1400,10 +1247,8 @@ class SimpleImage {
   //
   public function desaturate() {
     imagefilter($this->image, IMG_FILTER_GRAYSCALE);
-
     return $this;
   }
-
   //
   // Applies the edge detect filter.
   //
@@ -1411,10 +1256,8 @@ class SimpleImage {
   //
   public function edgeDetect() {
     imagefilter($this->image, IMG_FILTER_EDGEDETECT);
-
     return $this;
   }
-
   //
   // Applies the emboss filter.
   //
@@ -1422,10 +1265,8 @@ class SimpleImage {
   //
   public function emboss() {
     imagefilter($this->image, IMG_FILTER_EMBOSS);
-
     return $this;
   }
-
   //
   // Inverts the image's colors.
   //
@@ -1433,10 +1274,8 @@ class SimpleImage {
   //
   public function invert() {
     imagefilter($this->image, IMG_FILTER_NEGATE);
-
     return $this;
   }
-
   //
   // Changes the image's opacity level.
   //
@@ -1448,7 +1287,6 @@ class SimpleImage {
     // Create a transparent image
     $newImage = new SimpleImage();
     $newImage->fromNew($this->getWidth(), $this->getHeight());
-
     // Copy the current image (with opacity) onto the transparent image
     self::imageCopyMergeAlpha(
       $newImage->image,
@@ -1459,10 +1297,8 @@ class SimpleImage {
       $this->getHeight(),
       self::keepWithin($opacity, 0, 1) * 100
     );
-
     return $this;
   }
-
   //
   // Applies the pixelate filter.
   //
@@ -1472,10 +1308,8 @@ class SimpleImage {
   //
   public function pixelate($size = 10) {
     imagefilter($this->image, IMG_FILTER_PIXELATE, $size, true);
-
     return $this;
   }
-
   //
   // Simulates a sepia effect by desaturating the image and applying a sepia tone.
   //
@@ -1484,10 +1318,8 @@ class SimpleImage {
   public function sepia() {
     imagefilter($this->image, IMG_FILTER_GRAYSCALE);
     imagefilter($this->image, IMG_FILTER_COLORIZE, 70, 35, 0);
-
     return $this;
   }
-
   //
   // Sharpens the image.
   //
@@ -1500,12 +1332,9 @@ class SimpleImage {
       [0, -1, 0]
     ];
     $divisor = array_sum(array_map('array_sum', $sharpen));
-
     imageconvolution($this->image, $sharpen, $divisor, 0);
-
     return $this;
   }
-
   //
   // Applies the mean remove filter to produce a sketch effect.
   //
@@ -1513,14 +1342,11 @@ class SimpleImage {
   //
   public function sketch() {
     imagefilter($this->image, IMG_FILTER_MEAN_REMOVAL);
-
     return $this;
   }
-
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // Color utilities
   //////////////////////////////////////////////////////////////////////////////////////////////////
-
   //
   // Converts a "friendly color" into a color identifier for use with GD's image functions.
   //
@@ -1531,7 +1357,6 @@ class SimpleImage {
   //
   private function allocateColor($color) {
     $color = self::normalizeColor($color);
-
     // Was this color already allocated?
     $index = imagecolorexactalpha(
       $this->image,
@@ -1544,7 +1369,6 @@ class SimpleImage {
       // Yes, return this color index
       return $index;
     }
-
     // Allocate a new color index
     return imagecolorallocatealpha(
       $this->image,
@@ -1554,7 +1378,6 @@ class SimpleImage {
       127 - ($color['alpha'] * 127)
     );
   }
-
   //
   // Adjusts a color by increasing/decreasing red/green/blue/alpha values independently.
   //
@@ -1569,7 +1392,6 @@ class SimpleImage {
   public static function adjustColor($color, $red, $green, $blue, $alpha) {
     // Normalize to RGBA
     $color = self::normalizeColor($color);
-
     // Adjust each channel
     return self::normalizeColor([
       'red' => $color['red'] + $red,
@@ -1578,7 +1400,6 @@ class SimpleImage {
       'alpha' => $color['alpha'] + $alpha
     ]);
   }
-
   //
   // Darkens a color.
   //
@@ -1590,7 +1411,6 @@ class SimpleImage {
   public static function darkenColor($color, $amount) {
     return self::adjustColor($color, -$amount, -$amount, -$amount, 0);
   }
-
   //
   // Extracts colors from an image like a human would do.™ This method requires the third-party
   // library \League\ColorExtractor. If you're using Composer, it will be installed for you
@@ -1612,7 +1432,6 @@ class SimpleImage {
         self::ERR_LIB_NOT_LOADED
       );
     }
-
     // Convert background color to an integer value
     if($backgroundColor) {
       $backgroundColor = self::normalizeColor($backgroundColor);
@@ -1622,20 +1441,16 @@ class SimpleImage {
         'b' => $backgroundColor['blue']
       ]);
     }
-
     // Extract colors from the image
     $palette = \League\ColorExtractor\Palette::fromGD($this->image, $backgroundColor);
     $extractor = new \League\ColorExtractor\ColorExtractor($palette);
     $colors = $extractor->extract($count);
-
     // Convert colors to an RGBA color array
     foreach($colors as $key => $value) {
       $colors[$key] = self::normalizeColor(\League\ColorExtractor\Color::fromIntToHex($value));
     }
-
     return $colors;
   }
-
   //
   // Gets the RGBA value of a single pixel.
   //
@@ -1649,15 +1464,12 @@ class SimpleImage {
     if($x < 0 || $x > $this->getWidth() || $y < 0 || $y > $this->getHeight()) {
       return false;
     }
-
     // Get the color of this pixel and convert it to RGBA
     $color = imagecolorat($this->image, $x, $y);
     $rgba = imagecolorsforindex($this->image, $color);
     $rgba['alpha'] = 127 - ($color >> 24) & 0xFF;
-
     return $rgba;
   }
-
   //
   // Lightens a color.
   //
@@ -1669,7 +1481,6 @@ class SimpleImage {
   public static function lightenColor($color, $amount) {
     return self::adjustColor($color, $amount, $amount, $amount, 0);
   }
-
   //
   // Normalizes a hex or array color value to a well-formatted RGBA array.
   //
@@ -1732,7 +1543,6 @@ class SimpleImage {
       'violet' => '#ee82ee', 'wheat' => '#f5deb3', 'white' => '#ffffff', 'whitesmoke' => '#f5f5f5',
       'yellow' => '#ffff00', 'yellowgreen' => '#9acd32'
     ];
-
     // Parse alpha from '#fff|.5' and 'white|.5'
     if(is_string($color) && strstr($color, '|')) {
       $color = explode('|', $color);
@@ -1741,22 +1551,18 @@ class SimpleImage {
     } else {
       $alpha = 1;
     }
-
     // Translate CSS color names to hex values
     if(is_string($color) && array_key_exists(strtolower($color), $cssColors)) {
       $color = $cssColors[strtolower($color)];
     }
-
     // Translate transparent keyword to a transparent color
     if($color === 'transparent') {
       $color = ['red' => 0, 'green' => 0, 'blue' => 0, 'alpha' => 0];
     }
-
     // Convert hex values to RGBA
     if(is_string($color)) {
       // Remove #
       $hex = preg_replace('/^#/', '', $color);
-
       // Support short and standard hex codes
       if(strlen($hex) === 3) {
         list($red, $green, $blue) = [
@@ -1773,7 +1579,6 @@ class SimpleImage {
       } else {
         throw new \Exception("Invalid color value: $color", self::ERR_INVALID_COLOR);
       }
-
       // Turn color into an array
       $color = [
         'red' => hexdec($red),
@@ -1782,17 +1587,14 @@ class SimpleImage {
         'alpha' => $alpha
       ];
     }
-
     // Enforce color value ranges
     if(is_array($color)) {
       // RGB default to 0
       $color['red'] = isset($color['red']) ? $color['red'] : 0;
       $color['green'] = isset($color['green']) ? $color['green'] : 0;
       $color['blue'] = isset($color['blue']) ? $color['blue'] : 0;
-
       // Alpha defaults to 1
       $color['alpha'] = isset($color['alpha']) ? $color['alpha'] : 1;
-
       return [
         'red' => (int) self::keepWithin((int) $color['red'], 0, 255),
         'green' => (int) self::keepWithin((int) $color['green'], 0, 255),
@@ -1800,8 +1602,8 @@ class SimpleImage {
         'alpha' => self::keepWithin($color['alpha'], 0, 1)
       ];
     }
-
     throw new \Exception("Invalid color value: $color", self::ERR_INVALID_COLOR);
   }
-
 }
+
+?>
