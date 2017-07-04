@@ -1,79 +1,85 @@
-<?php 
-    require 'lib/simpleImage/claviska/SimpleImage.php';
-    include 'assets/php/img-traitement.php';		
-?>
+<?php
+
+require 'src/claviska/SimpleImage.php';
+
+$imageFileType = pathinfo($_FILES['fileToUpload']['name'], PATHINFO_EXTENSION);
+
+    if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
+    && $imageFileType != "gif" ) {
+        echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
+    }
+    elseif ($_FILES['fileToUpload']['size'] > 0) {
+         move_uploaded_file($_FILES['fileToUpload']['tmp_name'], './images/'.$_FILES['fileToUpload']['name']);
+                $maxWidth = 320;
+                $maxHeight = 200;
+                 $image = new \claviska\SimpleImage();
+                    $image->fromFile('./images/'.$_FILES['fileToUpload']['name']);
+                    $image->bestFit($maxWidth, $maxHeight);
+                    $image->toFile('./tailleNormale/'.$_FILES['fileToUpload']['name']); 
+     } 
+
+//print_r($_FILES);
+$directory = './tailleNormale/';
+$lecteur = scandir($directory);
+unset($lecteur[0], $lecteur[1]);
+//print_r($lecteur);
+
+
+//MIME = Multi-purpose Internet Mail Extensions. Identifie nature/format d'un fichier.
+//A tester comme ça >>> echo mime_content_type('index.php');
+?>  
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<title>Pinterest by Gab & Estelle</title>
-    
-    <!-- remodal css -->
-    <link rel="stylesheet" href="assets/js/Remodal/dist/remodal.css">      
-    <link rel="stylesheet" href="assets/js/Remodal/dist/remodal-default-theme.css">
-    <!-- ends remodal css -->
-
-    <!-- css -->
-    <link rel="stylesheet" type="text/css" href="assets/css/style.css">
-	<!-- ends css -->
-
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="Remodal-1.1.1/dist/remodal.css">
+    <link rel="stylesheet" href="Remodal-1.1.1/dist/remodal-default-theme.css">
+    <link rel="icon" type="image/png" href="assets/Pinterest_Favicon.png"> 
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="https://unpkg.com/isotope-layout@3/dist/isotope.pkgd.js"></script>
+    <title>Projet 4</title>
 </head>
 <body>
-    <!-- form -->
-	<form class="form-l" action="" method="post" enctype="multipart/form-data">
-		<!-- Faut rajouter des petites instructions pour l'user (taille max fichier et format accepté) -->
-  		<input type="file" name="fileToUpload" id="fileToUpload">
-  		<input type="submit" value="Upload Image" name="submit">
-	</form>
-    <!-- ends form -->
+        <script src="Remodal-1.1.1/dist/remodal.js"></script>
     
-    <!-- article -->
-	<article id="box" class="grid" data-isotope='{ "itemSelector": ".grid-item", "masonry": { "columnWidth": 0 } }'>
-        <figure>
-        <?php
-            foreach ($array_scandir_mini as $key => $url):
-                if ($url != '.' && $url != '..'):
-                $imgSize =  getimagesize("storage/uploads/".$url);
-        ?>  
-        <div class='grid-item'>
-            <div class= 'grid-sizer'></div>
-            <a href='#modal<?php echo $key; ?>'> 
-                <img class='img-size' src='storage/miniature_uploads/<?php echo $url; ?>' alt='<?php echo $url; ?>'>
-            </a>
+    <form method="post" action="" enctype="multipart/form-data">
+       <h1>Choisissez votre image</h1>
+        <!--<label for="titre">Titre du fichier (max. 50 caractères) :</label><br/>
+        <input type="text" name="titre" value="Titre du fichier" id="titre" /><br />
+        <input type="hidden" name="MAX_FILE_SIZE" value="500000">-->
+        <input type="file" name="fileToUpload" id="fileToUpload"><br/>
+        <!--<label for="description">Description de votre fichier (max. 255 caractères) :</label><br/>
+        <textarea name="description" id="description"></textarea><br/>-->
+        <input type="submit" name="submit">
+    </form>
+    
+    <div class="container">
+        <div class="grid" data-isotope='{ "itemSelector": ".grid-item", "masonry": { "columnWidth": 20 } }'></div>
+            
+            <?php
+                foreach ($lecteur as $key => $value) {
+                echo '<div class="grid-item"><a href="#'.$value.'"><img src="./tailleNormale/'.$value.'"></div>
+
+                <div class="remodal" data-remodal-id="'.$value.'" role="dialog" aria-labelledby="modal1Title" aria-describedby="modal1Desc">
+
+        <!--Bouton pour fermer la nouvelle image -->
+
+  <button data-remodal-action="close" class="remodal-close" aria-label="Close"></button>
+ 
+   <!-- Affiche la image selectionnée et asombre la page -->
+
+ <img src="./images/'.$value.'" >   
+
+
+</div>'; 
+                }
+
+            ?>
+
         </div>
-        <div class='remodal div-size' data-remodal-id='modal<?php echo $key; ?>' role='dialog'  aria-describedby='modal<?php echo $key; ?>Img'>
-            <button data-remodal-action='close' class='remodal-close' aria-label='Close'></button>
-            <img id='modal<?php echo $key; ?>Img' class='modal-img' src='storage/uploads/<?php echo $url; ?>' width='<?php echo $imgSize[0]; ?>' height='<?php echo $imgSize[1]; ?>'>
-            <br><br>
-            <button data-remodal-action='cancel' class='remodal-cancel'>Cancel </button>
-            <button data-remodal-action='confirm' class='remodal-confirm'>OK </button>
-        </div>
-        <?php    
-                    endif;
-                endforeach;
-        ?>
-        </figure>	      
-    </article>
-    <!--ends article -->
-
-
-    <!-- SCRIPTS -->
     
-    <!-- isotope -->
-    <script src="lib/JQuerry/JQuerry.js"></script>
-    <script src="assets/js/isotope.pkgd.js"></script>
-        <!-- Imageloaded for isotope -->
-        <script src="assets/js/imagesloaded.pkgd.js"></script>
-        <!-- ends Imageloaded -->
-    <script src="assets/js/isotope-preload.js"></script>
-    <!-- ends isotope -->
 
-    <!-- script pour remodal-->
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/zepto/1.1.4/zepto.js"></script>
-    <script>window.Zepto || document.write('<script src="assets/js/Remodal/libs/zepto/zepto.min.js"><\/script>')</script>
-    <script src="assets/js/Remodal/dist/remodal.js"></script>
-    <!-- end script pour remodal-->    
-    
-    <!-- END SCRIPTS -->
 </body>
 </html>
+
